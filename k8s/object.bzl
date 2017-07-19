@@ -76,6 +76,7 @@ def _impl(ctx):
   _instantiate(ctx, ctx.file.template, all_stamps, ctx.outputs.yaml)
 
   push_commands = []
+  all_inputs = []
   if ctx.attr.images:
     # Compute the set of layers from the image_targets.
     image_target_dict = _string_to_label(
@@ -93,7 +94,6 @@ def _impl(ctx):
     #    given that the output of push_and_resolve.py is {tag}={digest}
     #    these will likely be: --override $(script from #1)
     index = 0
-    all_inputs = []
     for unresolved_tag in ctx.attr.images:
       # Allow users to put make variables into the tag name.
       tag = ctx.expand_make_variables("images", unresolved_tag, {})
