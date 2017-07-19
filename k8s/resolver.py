@@ -19,6 +19,7 @@ import sys
 
 from containerregistry.client import docker_creds
 from containerregistry.client import docker_name
+from containerregistry.client.v2 import util as v2_util
 from containerregistry.client.v2_2 import docker_image as v2_2_image
 from containerregistry.client.v2_2 import util
 from containerregistry.tools import patched
@@ -68,9 +69,21 @@ def main():
       # Docker keychain logic.
       creds = docker_creds.DefaultKeychain.Resolve(as_tag)
       with v2_2_image.FromRegistry(as_tag, creds, transport) as img:
-        return str(docker_name.Digest('{repository}@{digest}'.format(
-          repository=as_tag.as_repository(),
-          digest=util.Digest(img.manifest()))))
+        if img.exists():
+          digest = str(docker_name.Digest('{repository}@{digest}'.format(
+            repository=as_tag.as_repository(),
+            digest=util.Digest(img.manifest()))))
+        else:
+          # If the tag doesn't exists as v2.2, then try as v2.
+          with v2_image.FromRegistry(as_tag, creds, transport) as img:
+            digest = str(docker_name.Digest('{repository}@{digest}'.format(
+              repository=as_tag.as_repository(),
+              digest=v2_util.Digest(img.manifest()))))
+
+      # Make sure we consistently resolve all instances of a tag,
+      # since it is technically possible to have a race here.
+      overrides[as_tag] = digest
+      return digest
     except:
       return s
 

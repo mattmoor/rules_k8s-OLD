@@ -62,7 +62,7 @@ k8s_deploy(
       "environment": "{BUILD_USER}",
       "replicas": "1",
   },
-  # When the `:dev.resolve`, `:dev.create` or `:dev.replace`
+  # When the `:dev`, `:dev.create` or `:dev.replace`
   # targets are `bazel run` these images are published and
   # their digest is substituted into the template in place of
   # what is currently published.
@@ -109,7 +109,7 @@ cryptographic guarantees of consistency across the replicas of a deployment.
 You can "resolve" the instantiated template by running:
 
 ```shell
-bazel run :dev.resolve
+bazel run :dev
 ```
 
 This command will publish any `images = {}` present in your rule, substituting
