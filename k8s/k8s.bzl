@@ -13,11 +13,7 @@
 # limitations under the License.
 """Rules for manipulation of K8s constructs."""
 
-load(":object.bzl", "k8s_object")
-
-# A deployment specific convenience alias.
-load(":deploy.bzl", "k8s_deploy")
-
+load(":with-default.bzl", "k8s_defaults")
 
 def k8s_repositories():
   """Download dependencies of k8s rules."""

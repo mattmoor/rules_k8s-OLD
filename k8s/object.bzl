@@ -160,8 +160,9 @@ TMPFILE=$(mktemp -t)
 trap "rm -f $TMPFILE" EXIT
 ./{resolve_script} > $TMPFILE
 
-echo Created "$(kubectl create -f "$TMPFILE" | cut -d'"' -f 2)"
+echo Created "$(kubectl --cluster="{cluster}" create -f "$TMPFILE" | cut -d'"' -f 2)"
 EOF""".format(
+        cluster = ctx.attr.cluster,
         create_script = ctx.outputs.executable.path,
         resolve_script = ctx.executable.resolved.short_path,
       ),
@@ -191,8 +192,9 @@ TMPFILE=$(mktemp -t)
 trap "rm -f $TMPFILE" EXIT
 ./{resolve_script} > $TMPFILE
 
-echo Replaced "$(kubectl replace -f "$TMPFILE" | cut -d'"' -f 2)"
-EOF""".format(
+echo Replaced "$(kubectl --cluster="{cluster}" replace -f "$TMPFILE" | cut -d'"' -f 2)"
+EOF""".format( 
+        cluster = ctx.attr.cluster,
         replace_script = ctx.outputs.executable.path,
         resolve_script = ctx.executable.resolved.short_path,
       ),
@@ -221,9 +223,10 @@ def _expose_impl(ctx):
 #!/bin/bash -e
 set -o pipefail
 
-kubectl expose "{kind}/$(kubectl create --dry-run -f "{yaml}" | cut -d'"' -f 2)" \
+kubectl --cluster="{cluster"} expose "{kind}/$(kubectl create --dry-run -f "{yaml}" | cut -d'"' -f 2)" \
   --type LoadBalancer
 EOF""".format(expose_script = ctx.outputs.executable.path,
+              cluster = ctx.attr.cluster,
               kind = ctx.attr.kind,
               yaml = ctx.files.yaml[0].short_path,
       ),
@@ -242,8 +245,9 @@ def _describe_impl(ctx):
 #!/bin/bash -e
 set -o pipefail
 
-kubectl describe {kind} "$(kubectl create --dry-run -f "{yaml}" | cut -d'"' -f 2)"
+kubectl --cluster="{cluster}" describe {kind} "$(kubectl create --dry-run -f "{yaml}" | cut -d'"' -f 2)"
 EOF""".format(describe_script = ctx.outputs.executable.path,
+              cluster = ctx.attr.cluster,
               kind = ctx.attr.kind,
               yaml = ctx.files.yaml[0].short_path,
       ),
@@ -262,8 +266,9 @@ def _delete_impl(ctx):
 #!/bin/bash -e
 set -o pipefail
 
-kubectl delete {kind} "$(kubectl create --dry-run -f "{yaml}" | cut -d'"' -f 2)"
+kubectl --cluster="{cluster}" delete {kind} "$(kubectl create --dry-run -f "{yaml}" | cut -d'"' -f 2)"
 EOF""".format(delete_script = ctx.outputs.executable.path,
+              cluster = ctx.attr.cluster,
               kind = ctx.attr.kind,
               yaml = ctx.files.yaml[0].short_path,
       ),
@@ -275,6 +280,7 @@ EOF""".format(delete_script = ctx.outputs.executable.path,
   return struct(runfiles = ctx.runfiles(files = ctx.files.yaml))
 
 _common_attrs = {
+  "cluster": attr.string(mandatory = True),
   "kind": attr.string(mandatory = True,
                       # TODO(mattmoor): Support additional objects
                       values = ["deployment"]),
@@ -292,6 +298,8 @@ _common_attrs = {
   ),
 }
 
+# TODO(mattmoor): Consider exposing something like docker.build, but for:
+# k8s.object.create, k8s.deployment.create, etc...
 _k8s_object = rule(
     attrs = {
       "template": attr.label(
@@ -396,8 +404,13 @@ def k8s_object(name, **kwargs):
   kwargs["image_target_strings"] = list(set(kwargs.get("images", {}).values()))
 
   _k8s_object(name=name, **kwargs)
-  _k8s_object_create(name=name + '.create', resolved=name, kind=kwargs.get("kind"))
-  _k8s_object_replace(name=name + '.replace', resolved=name, kind=kwargs.get("kind"))
-  _k8s_object_expose(name=name + '.expose', yaml=name + '.yaml', kind=kwargs.get("kind"))
-  _k8s_object_describe(name=name + '.describe', yaml=name + '.yaml', kind=kwargs.get("kind"))
-  _k8s_object_delete(name=name + '.delete', yaml=name + '.yaml', kind=kwargs.get("kind"))
+  _k8s_object_create(name=name + '.create', resolved=name,
+                     kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
+  _k8s_object_replace(name=name + '.replace', resolved=name,
+                      kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
+  _k8s_object_expose(name=name + '.expose', yaml=name + '.yaml',
+                     kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
+  _k8s_object_describe(name=name + '.describe', yaml=name + '.yaml',
+                       kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
+  _k8s_object_delete(name=name + '.delete', yaml=name + '.yaml',
+                     kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))

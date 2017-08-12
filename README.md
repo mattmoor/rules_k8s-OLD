@@ -2,11 +2,12 @@
 
 ## Rules
 
-* [k8s_deploy](#k8s_deploy)
+* [k8s_defaults](#k8s_defaults)
+* [k8s_object](#k8s_object)
 
 ## Overview
 
-This repository contains rules for interacting with Kubernetes configurations.
+This repository contains rules for interacting with Kubernetes configurations / clusters.
 
 ## Setup
 
@@ -15,8 +16,8 @@ Add the following to your `WORKSPACE` file to add the external repositories:
 ```python
 git_repository(
     name = "io_bazel_rules_docker",
-    remote = "https://github.com/mattmoor/rules_docker.git",
-    commit = "5ee8f1b66309d6c59762900cf0b8b1b88224ecaf",
+    remote = "https://github.com/bazelbuild/rules_docker.git",
+    commit = "{HEAD}",
 )
 
 load(
@@ -30,9 +31,7 @@ docker_repositories()
 git_repository(
     name = "io_bazel_rules_k8s",
     remote = "https://github.com/mattmoor/rules_k8s.git",
-    # TODO(mattmoor): Update when we release, for now use the
-    # commit at HEAD.
-    tag = "TODO",
+    commit = "{HEAD}",
 )
 load("@io_bazel_rules_k8s//k8s:k8s.bzl", "k8s_repositories")
 k8s_repositories()
@@ -40,15 +39,23 @@ k8s_repositories()
 
 ## Authorization
 
-TODO: this section
+As is somewhat standard for Bazel, the expectation is that the
+kubectl toolchain is configured to authenticate with any clusters
+you might interact with.
+
+TODO: Add a link to configuring auth in kubectl.
 
 ## Examples
 
-### k8s_deploy (Dev setup)
+### Basic "deployment" objects
 
 ```python
-k8s_deploy(
+load("@io_bazel_rules_k8s//k8s:object.bzl", "k8s_object")
+
+k8s_object(
   name = "dev",
+  kind = "deployment",
+  cluster = "my-gke-cluster",
   # A template of a Kubernetes Deployment object yaml.
   template = ":deployment.yaml.tpl",
   # Format strings within the above template of the form:
@@ -73,11 +80,60 @@ k8s_deploy(
 ```
 
 
-### k8s_deploy (Prod setup)
+### Configuring aliases with defaults
 
-TODO: this
+In your `WORKSPACE` you can set up aliases for a more readable short-hand:
+```python
+load("@io_bazel_rules_k8s//k8s:k8s.bzl", "k8s_defaults")
 
-## Usage (k8s_deploy)
+k8s_defaults(
+  # This becomes the name of the @repository and the rule
+  # you will import in your BUILD files.
+  name = "k8s_deploy",
+  kind = "deployment",
+  cluster = "my-gke-cluster",
+)
+```
+
+Then in place of the above, you can use the following in your `BUILD` file:
+
+```python
+load("@k8s_deploy//:defaults.bzl", "k8s_deploy")
+
+k8s_deploy(
+  name = "dev",
+  template = ":deployment.yaml.tpl",
+  substitutions = {
+      "environment": "{BUILD_USER}",
+      "replicas": "1",
+  },
+  images = {
+    "gcr.io/convoy-adapter/bazel-grpc:{environment}": "//server:image"
+  },
+)
+```
+
+### Configuring more advanced aliases
+
+Suppose my team uses different clusters for development and production,
+instead of a simple `k8s_deploy`, you might use:
+```python
+load("@io_bazel_rules_k8s//k8s:k8s.bzl", "k8s_defaults")
+
+k8s_defaults(
+  name = "k8s_dev_deploy",
+  kind = "deployment",
+  cluster = "my-dev-cluster",
+)
+
+k8s_defaults(
+  name = "k8s_prod_deploy",
+  kind = "deployment",
+  cluster = "my-prod-cluster",
+)
+```
+
+## Usage
 
 This single target exposes a rich set of actions that empower developers
 to effectively deploy applications to Kubernetes.  We will follow the `:dev`
@@ -165,14 +221,14 @@ This is intentional as load balancers from cloud providers can be slow
 to create.
 
 
-<a name="k8s_deploy"></a>
-## k8s_deploy
+<a name="k8s_object"></a>
+## k8s_object
 
 ```python
-k8s_deploy(name, template, substitutions, images)
+k8s_object(name, kind, cluster, template, substitutions, images)
 ```
 
-A rule that instantiates templated Kubernetes Deployment yaml and enables
+A rule that instantiates templated Kubernetes yaml and enables
 a variety of interactions with that object.
 
 <table class="table table-condensed table-bordered table-params">
@@ -194,10 +250,25 @@ a variety of interactions with that object.
       </td>
     </tr>
     <tr>
+      <td><code>kind</code></td>
+      <td>
+        <p><code>Kind, required</code></p>
+        <p>The kind of the Kubernetes object in the yaml.</p>
+      </td>
+    </tr>
+    <tr>
+      <td><code>cluster</code></td>
+      <td>
+        <p><code>Cluster, required</code></p>
+        <p>The name of the K8s cluster with which
+	   <code>bazel run :foo.xxx</code> actions interact.</p>
+      </td>
+    </tr>
+    <tr>
       <td><code>template</code></td>
       <td>
         <p><code>Templatized yaml file; required</code></p>
-        <p>A templatized form of the Kubernetes Deployment yaml.</p>
+        <p>A templatized form of the Kubernetes yaml.</p>
         <p>The yaml is allowed to container <code>{param}</code>
            references, for which stamp variables and substitutions
            will replace.</p>
@@ -221,6 +292,54 @@ a variety of interactions with that object.
            <code>docker_bundle</code>, this set of images is published
            and tag references replaced with the published digest whenever
            the template is resolved (<code>.resolve, .create, .update</code>)</p>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<a name="k8s_defaults"></a>
+## k8s_defaults
+
+```python
+k8s_defaults(name, kind, cluster)
+```
+
+A repository rule that allows users to alias `k8s_object` with default values
+for `kind` and/or `cluster`.
+
+<table class="table table-condensed table-bordered table-params">
+  <colgroup>
+    <col class="col-param" />
+    <col class="param-description" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th colspan="2">Attributes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>name</code></td>
+      <td>
+        <p><code>Name, required</code></p>
+        <p>The name of the repository that this rule will create.</p>
+        <p>Also the name of rule imported from
+	   <code>@name//:defaults.bzl</code></p>
+      </td>
+    </tr>
+    <tr>
+      <td><code>kind</code></td>
+      <td>
+        <p><code>Kind, optional</code></p>
+        <p>The kind of objects the alias of <code>k8s_object</code> handles.</p>
+      </td>
+    </tr>
+    <tr>
+      <td><code>cluster</code></td>
+      <td>
+        <p><code>Cluster, optional</code></p>
+        <p>The name of the K8s cluster with which
+	   <code>bazel run :foo.xxx</code> actions interact.</p>
       </td>
     </tr>
   </tbody>
