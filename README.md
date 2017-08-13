@@ -37,13 +37,23 @@ load("@io_bazel_rules_k8s//k8s:k8s.bzl", "k8s_repositories")
 k8s_repositories()
 ```
 
-## Authorization
+## Kubernetes Authentication
 
 As is somewhat standard for Bazel, the expectation is that the
-kubectl toolchain is configured to authenticate with any clusters
+`kubectl` toolchain is preconfigured to authenticate with any clusters
 you might interact with.
 
-TODO: Add a link to configuring auth in kubectl.
+For more information on how to configure `kubectl` authentication, see the
+Kubernetes [documentation](https://kubernetes.io/docs/admin/authentication/).
+
+### Container Engine Authentication
+
+For Google Container Engine (GKE), the `gcloud` CLI provides a [simple
+command](https://cloud.google.com/sdk/gcloud/reference/container/clusters/get-credentials)
+for setting up authentication:
+```shell
+gcloud container clusters get-credentials <CLUSTER NAME>
+```
 
 ## Examples
 
@@ -79,8 +89,31 @@ k8s_object(
 )
 ```
 
+Here, `deployment.yaml.tpl` is a templatized Kubernetes Deployment resource,
+e.g.
+```yaml
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: hello-world-{environment}
+spec:
+  replicas: {replicas}
+  template:
+    metadata:
+      labels:
+        app: hello-world-{environment}
+    spec:
+      containers:
+      - name: hello-world
+        image: gcr.io/my-project/hello-world:{environment}
+        # If you follow the best practice of deploying by digest,
+        # then this stops being necessary.
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 1234
+```
 
-### Configuring aliases with defaults
+### Aliasing (e.g. `k8s_deploy`)
 
 In your `WORKSPACE` you can set up aliases for a more readable short-hand:
 ```python
@@ -113,7 +146,7 @@ k8s_deploy(
 )
 ```
 
-### Configuring more advanced aliases
+### Advanced Aliasing
 
 Suppose my team uses different clusters for development and production,
 instead of a simple `k8s_deploy`, you might use:
@@ -139,7 +172,7 @@ This single target exposes a rich set of actions that empower developers
 to effectively deploy applications to Kubernetes.  We will follow the `:dev`
 target from the example above.
 
-### Instantiate the Template
+### Build
 
 Users can instantiate their `deployment.sh.tpl` by simply running:
 
@@ -147,17 +180,32 @@ Users can instantiate their `deployment.sh.tpl` by simply running:
 bazel build :dev
 ```
 
-This will create a single-replica deployment namespaced in various ways to
-my developer identity.  You can examine it by:
-
-```shell
-cat bazel-bin/dev.yaml
+Following the above example, this would result in a single replica deployment
+namespaced to my username written to `bazel-bin/dev.yaml`:
+```yaml
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: hello-world-mattmoor
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello-world-mattmoor
+    spec:
+      containers:
+      - name: hello-world
+        image: gcr.io/my-project/hello-world:mattmoor
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 1234
 ```
 
-### Instantiate *and Resolve* the Template
+### Resolve
 
-Deploying with tags, especially in production, is a bad idea because they are
-mutable.  If a tag changes, it can lead to inconsistent versions of your app
+Deploying with tags, especially in production, is a bad practice because they
+are mutable.  If a tag changes, it can lead to inconsistent versions of your app
 running after auto-scaling or auto-healing events.  Thankfully in v2 of the
 Docker Registry, digests were introduced.  Deploying by digest provides
 cryptographic guarantees of consistency across the replicas of a deployment.
@@ -172,16 +220,61 @@ This command will publish any `images = {}` present in your rule, substituting
 those exact digests into the yaml template, and for other images resolving the
 tags to digests by fetching their manifests.
 
-### Creating an Environment
+Continuing with our example, this would result in the following being printed
+to `STDOUT`:
+```yaml
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: hello-world-mattmoor
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello-world-mattmoor
+    spec:
+      containers:
+      - name: hello-world
+        image: gcr.io/my-project/hello-world@sha256:deadbeefbadf00d
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 1234
+```
+
+
+### Create
 
 Users can create an environment by running:
 ```shell
 bazel run :dev.create
 ```
 
-This deploys the **resolved** template, including publishing images.
+This deploys the **resolved** template, which includes publishing images.
 
-### Exposing an Environment
+### Update
+
+Users can update (replace) their environment by running:
+```shell
+bazel run :dev.replace
+```
+
+Like `.create` this deploys the **resolved** template, which includes
+republishing images.  This action is intended to be the workhorse
+of fast-iteration development (rebuilding / republishing / redeploying).
+
+### Delete
+
+Users can tear down their environment by running:
+```shell
+bazel run :dev.delete
+```
+
+It is notable that despite deleting the deployment, this will NOT delete
+any services currently load balancing over the deployment (e.g. `.expose`
+below).  This is intentional as creating load balancers can be slow.
+
+### Expose
 
 Users can "expose" their environment by running:
 
@@ -189,36 +282,21 @@ Users can "expose" their environment by running:
 bazel run :dev.expose
 ```
 
-### Describe the Environment
+This does not currently wait for the load balancer to get fully created,
+which can be quite slow.  You can check the status by running:
+```shell
+kubectl --cluster="..." get service
+```
+
+... and waiting for the appropriately namespaced service to have an external IP.
+
+### Describe
 
 Users can "describe" their environment by running:
 
 ```shell
 bazel run :dev.describe
 ```
-
-### Updating/Replacing an Environment
-
-Users can update (replace) their environment by running:
-```shell
-bazel run :dev.replace
-```
-
-Like `.create` this deploys the **resolved** template, including
-republishing images.  This action is intended to be the workhorse
-of fast-iteration development (rebuilding / republishing / redeploying).
-
-### Tearing down an Environment
-
-Users can tear down their environment by running:
-```shell
-bazel run :dev.delete
-```
-
-It is notable that despite deleting the deployment, this won't delete
-any services currently load balancing over the deployment (e.g. `.expose`).
-This is intentional as load balancers from cloud providers can be slow
-to create.
 
 
 <a name="k8s_object"></a>
