@@ -17,13 +17,13 @@ addons:
       - kubectl
 
 
-# before_install:
-#   # Log into GCR
-#   - docker login -u _json_key -p "${GCR_JSON_KEY}" https://gcr.io
-#   # TODO(mattmoor): Get gcloud
-#   # TODO(mattmoor): Setup gcloud auth
-#   # TODO(mattmoor): Get kubectl
-#   # TODO(mattmoor): Setup kubectl auth
+before_install:
+  # Log into GCR
+  - docker login -u _json_key -p "${GOOGLE_JSON_KEY}" https://us.gcr.io
+  # TODO(mattmoor): Get gcloud
+  # TODO(mattmoor): Setup gcloud auth
+  # TODO(mattmoor): Get kubectl
+  # TODO(mattmoor): Setup kubectl auth
 
 install:
   - go get -u github.com/bazelbuild/buildifier/buildifier
