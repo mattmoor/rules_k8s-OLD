@@ -20,10 +20,14 @@ addons:
 before_install:
   # Log into GCR
   - docker login -u _json_key -p "${GOOGLE_JSON_KEY}" https://us.gcr.io
-  # TODO(mattmoor): Get gcloud
-  # TODO(mattmoor): Setup gcloud auth
-  # TODO(mattmoor): Get kubectl
-  # TODO(mattmoor): Setup kubectl auth
+  # Log into gcloud
+  - echo -n "${GOOGLE_JSON_KEY}" > keyfile.json
+  - gcloud auth activate-service-account --key-file keyfile.json
+  - rm -f keyfile.json
+  # TODO(mattmoor): Move to a cluster in rules_k8s.
+  - gcloud config set core/project convoy-adapter
+  - gcloud config set compute/zone us-central1-f
+  - gcloud container clusters get-credentials bazel-grpc
 
 install:
   - go get -u github.com/bazelbuild/buildifier/buildifier
