@@ -1,5 +1,7 @@
 # EXPERIMENTAL Kubernetes Docker Rules
 
+[![Build Status](https://travis-ci.org/mattmoor/rules_k8s.svg?branch=master)](https://travis-ci.org/mattmoor/rules_k8s)
+
 ## Rules
 
 * [k8s_defaults](#k8s_defaults)
