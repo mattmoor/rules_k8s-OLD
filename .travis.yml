@@ -1,0 +1,47 @@
+sudo: required
+dist: trusty
+language:
+  - java
+jdk:
+  - oraclejdk8  # Building Bazel requires JDK8.
+addons:
+  apt:
+    sources:
+      - sourceline: 'deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8'
+        key_url: 'https://storage.googleapis.com/bazel-apt/doc/apt-key.pub.gpg'
+      - sourceline: 'deb [arch=amd64] http://packages.cloud.google.com/apt cloud-sdk-trusty main'
+        key_url: 'https://packages.cloud.google.com/apt/doc/apt-key.gpg'
+    packages:
+      - bazel
+      - google-cloud-sdk
+      - kubectl
+
+
+# before_install:
+#   # Log into GCR
+#   - docker login -u _json_key -p "${GCR_JSON_KEY}" https://gcr.io
+#   # TODO(mattmoor): Get gcloud
+#   # TODO(mattmoor): Setup gcloud auth
+#   # TODO(mattmoor): Get kubectl
+#   # TODO(mattmoor): Setup kubectl auth
+
+install:
+  - go get -u github.com/bazelbuild/buildifier/buildifier
+
+script:
+  # Check our installs.
+  - bazel version
+  - gcloud version
+  - kubectl version
+
+  # # Check that all of our samples build
+  # - bazel clean && bazel build //...
+  # # We have no Bazel-based testing currently.
+
+  # # Check for issues with the format of our bazel config files.
+  # - buildifier -mode=check $(find . -name BUILD -type f)
+  # - buildifier -mode=check $(find . -name WORKSPACE -type f)
+  # - buildifier -mode=check $(find . -name '*.bzl' -type f)
+
+  # # Run our GRPC e2e test to verify things WAI
+  # - ./examples/hello-grpc/cc/e2e-test.sh
