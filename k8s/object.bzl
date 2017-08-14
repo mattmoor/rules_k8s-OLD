@@ -223,7 +223,7 @@ def _expose_impl(ctx):
 #!/bin/bash -e
 set -o pipefail
 
-kubectl --cluster="{cluster"} expose "{kind}/$(kubectl create --dry-run -f "{yaml}" | cut -d'"' -f 2)" \
+kubectl --cluster="{cluster}" expose "{kind}/$(kubectl create --dry-run -f "{yaml}" | cut -d'"' -f 2)" \
   --type LoadBalancer
 EOF""".format(expose_script = ctx.outputs.executable.path,
               cluster = ctx.attr.cluster,
