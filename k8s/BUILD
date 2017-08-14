@@ -38,7 +38,7 @@ par_binary(
     main = "resolver.py",
     visibility = ["//visibility:public"],
     deps = [
-        "@yaml//:yaml",
         "@containerregistry//:containerregistry",
+        "@yaml//:yaml",
     ],
 )

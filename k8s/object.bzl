@@ -280,110 +280,115 @@ EOF""".format(delete_script = ctx.outputs.executable.path,
   return struct(runfiles = ctx.runfiles(files = ctx.files.yaml))
 
 _common_attrs = {
-  "cluster": attr.string(mandatory = True),
-  "kind": attr.string(mandatory = True,
-                      # TODO(mattmoor): Support additional objects
-                      values = ["deployment"]),
-  "_pusher": attr.label(
-    default = Label("//k8s:push_and_resolve.par"),
-    cfg = "host",
-    executable = True,
-    allow_files = True,
-  ),
-  "_resolver": attr.label(
-    default = Label("//k8s:resolver.par"),
-    cfg = "host",
-    executable = True,
-    allow_files = True,
-  ),
+    "cluster": attr.string(mandatory = True),
+    "kind": attr.string(
+        mandatory = True,
+        # TODO(mattmoor): Support additional objects
+        values = ["deployment"],
+    ),
+    "_pusher": attr.label(
+        default = Label("//k8s:push_and_resolve.par"),
+        cfg = "host",
+        executable = True,
+        allow_files = True,
+    ),
+    "_resolver": attr.label(
+        default = Label("//k8s:resolver.par"),
+        cfg = "host",
+        executable = True,
+        allow_files = True,
+    ),
 }
 
 # TODO(mattmoor): Consider exposing something like docker.build, but for:
 # k8s.object.create, k8s.deployment.create, etc...
 _k8s_object = rule(
     attrs = {
-      "template": attr.label(
-        allow_files = [".yaml", ".yaml.tpl"],
-        single_file = True,
-        mandatory = True,
-      ),
-      "substitutions": attr.string_dict(),
-      "images": attr.string_dict(),
-      # Implicit dependencies.
-      "image_targets": attr.label_list(allow_files = True),
-      "image_target_strings": attr.string_list(),
-      "_stamper": attr.label(
-        default = Label("//k8s:stamper.par"),
-        cfg = "host",
-        executable = True,
-        allow_files = True,
-      ),
+        "template": attr.label(
+            allow_files = [
+                ".yaml",
+                ".yaml.tpl",
+            ],
+            single_file = True,
+            mandatory = True,
+        ),
+        "substitutions": attr.string_dict(),
+        "images": attr.string_dict(),
+        # Implicit dependencies.
+        "image_targets": attr.label_list(allow_files = True),
+        "image_target_strings": attr.string_list(),
+        "_stamper": attr.label(
+            default = Label("//k8s:stamper.par"),
+            cfg = "host",
+            executable = True,
+            allow_files = True,
+        ),
     } + _common_attrs + _layer_tools,
+    executable = True,
     outputs = {
         "yaml": "%{name}.yaml",
     },
     implementation = _impl,
-    executable = True,
 )
 
 _k8s_object_create = rule(
     attrs = {
-      "resolved": attr.label(
-        cfg = "host",
-        executable = True,
-        allow_files = True,
-      ),
+        "resolved": attr.label(
+            cfg = "host",
+            executable = True,
+            allow_files = True,
+        ),
     } + _common_attrs,
-    implementation = _create_impl,
     executable = True,
+    implementation = _create_impl,
 )
 
 _k8s_object_replace = rule(
     attrs = {
-      "resolved": attr.label(
-        cfg = "host",
-        executable = True,
-        allow_files = True,
-      ),
+        "resolved": attr.label(
+            cfg = "host",
+            executable = True,
+            allow_files = True,
+        ),
     } + _common_attrs,
-    implementation = _replace_impl,
     executable = True,
+    implementation = _replace_impl,
 )
 
 _k8s_object_expose = rule(
     attrs = {
-      "yaml": attr.label(
-        allow_files = [".yaml"],
-        single_file = True,
-        mandatory = True,
-      ),
+        "yaml": attr.label(
+            allow_files = [".yaml"],
+            single_file = True,
+            mandatory = True,
+        ),
     } + _common_attrs,
-    implementation = _expose_impl,
     executable = True,
+    implementation = _expose_impl,
 )
 
 _k8s_object_describe = rule(
     attrs = {
-      "yaml": attr.label(
-        allow_files = [".yaml"],
-        single_file = True,
-        mandatory = True,
-      ),
+        "yaml": attr.label(
+            allow_files = [".yaml"],
+            single_file = True,
+            mandatory = True,
+        ),
     } + _common_attrs,
-    implementation = _describe_impl,
     executable = True,
+    implementation = _describe_impl,
 )
 
 _k8s_object_delete = rule(
     attrs = {
-      "yaml": attr.label(
-        allow_files = [".yaml"],
-        single_file = True,
-        mandatory = True,
-      ),
+        "yaml": attr.label(
+            allow_files = [".yaml"],
+            single_file = True,
+            mandatory = True,
+        ),
     } + _common_attrs,
-    implementation = _delete_impl,
     executable = True,
+    implementation = _delete_impl,
 )
 
 def k8s_object(name, **kwargs):

@@ -26,10 +26,10 @@ cc_image(
 load("@k8s_deploy//:defaults.bzl", "k8s_deploy")
 
 k8s_deploy(
-  name = "staging",
-  template = "//examples/hello-grpc:deployment.yaml",
-  images = {
-      # TODO(mattmoor): Switch to rules_k8s
-      "us.gcr.io/convoy-adapter/hello-grpc:staging": ":server"
-  },
+    name = "staging",
+    images = {
+        # TODO(mattmoor): Switch to rules_k8s
+        "us.gcr.io/convoy-adapter/hello-grpc:staging": ":server",
+    },
+    template = "//examples/hello-grpc:deployment.yaml",
 )

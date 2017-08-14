@@ -38,14 +38,14 @@ script:
   - gcloud version
   - kubectl version
 
-  # # Check that all of our samples build
-  # - bazel clean && bazel build //...
-  # # We have no Bazel-based testing currently.
+  # Check that all of our samples build
+  - bazel clean && bazel build //...
+  # We have no Bazel-based testing currently.
 
-  # # Check for issues with the format of our bazel config files.
-  # - buildifier -mode=check $(find . -name BUILD -type f)
-  # - buildifier -mode=check $(find . -name WORKSPACE -type f)
-  # - buildifier -mode=check $(find . -name '*.bzl' -type f)
+  # Check for issues with the format of our bazel config files.
+  - buildifier -mode=check $(find . -name BUILD -type f)
+  - buildifier -mode=check $(find . -name WORKSPACE -type f)
+  - buildifier -mode=check $(find . -name '*.bzl' -type f)
 
-  # # Run our GRPC e2e test to verify things WAI
-  # - ./examples/hello-grpc/cc/e2e-test.sh
+  # Run our GRPC e2e test to verify things WAI
+  - ./examples/hello-grpc/cc/e2e-test.sh

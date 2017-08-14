@@ -48,7 +48,6 @@ def _override(name, attr, value):
   kwargs["{attr}"] = "{value}"
 """.format(name=name, attr=attr, value=value)
 
-
 def _impl(repository_ctx):
   """Core implementation of k8s_defaults."""
 
@@ -81,8 +80,9 @@ def {name}(**kwargs):
 _k8s_defaults = repository_rule(
     attrs = {
         "kind": attr.string(
-          # TODO(mattmoor): Support additional objects
-          values = ["deployment"]),
+            # TODO(mattmoor): Support additional objects
+            values = ["deployment"],
+        ),
         "cluster": attr.string(),
     },
     implementation = _impl,
