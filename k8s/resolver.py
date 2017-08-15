@@ -38,7 +38,7 @@ parser.add_argument(
 
 
 _THREADS = 8
-
+_DOCUMENT_DELIMITER = '---\n'
 
 def main():
   args = parser.parse_args()
@@ -97,10 +97,12 @@ def main():
     return o
 
 
-  input = sys.stdin.read()
-  as_yaml = yaml.load(input)
-
-  print yaml.dump(walk(as_yaml))
+  inputs = sys.stdin.read()
+  outputs = _DOCUMENT_DELIMITER.join([
+    yaml.dump(walk(yaml.load(input)))
+    for input in inputs.split(_DOCUMENT_DELIMITER)
+  ])
+  print outputs
 
 
 if __name__ == '__main__':

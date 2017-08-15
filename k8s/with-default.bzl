@@ -77,11 +77,13 @@ def {name}(**kwargs):
   overrides="\n".join(overrides)
 ))
 
+load(":object.bzl", "KINDS")
+
 _k8s_defaults = repository_rule(
     attrs = {
         "kind": attr.string(
-            # TODO(mattmoor): Support additional objects
-            values = ["deployment"],
+            mandatory = False,
+            values = KINDS + [''],
         ),
         "cluster": attr.string(),
     },

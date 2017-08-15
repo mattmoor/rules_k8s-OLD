@@ -279,12 +279,17 @@ EOF""".format(delete_script = ctx.outputs.executable.path,
 
   return struct(runfiles = ctx.runfiles(files = ctx.files.yaml))
 
+# TODO(mattmoor): Support additional kinds.
+KINDS = [
+    "deployment",
+]
+
 _common_attrs = {
     "cluster": attr.string(mandatory = True),
     "kind": attr.string(
         mandatory = True,
         # TODO(mattmoor): Support additional objects
-        values = ["deployment"],
+        values = KINDS,
     ),
     "_pusher": attr.label(
         default = Label("//k8s:push_and_resolve.par"),
@@ -413,9 +418,12 @@ def k8s_object(name, **kwargs):
                      kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
   _k8s_object_replace(name=name + '.replace', resolved=name,
                       kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
-  _k8s_object_expose(name=name + '.expose', yaml=name + '.yaml',
-                     kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
-  _k8s_object_describe(name=name + '.describe', yaml=name + '.yaml',
-                       kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
   _k8s_object_delete(name=name + '.delete', yaml=name + '.yaml',
                      kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
+
+  # Only expose these bonus actions for certain types.
+  if kwargs.get('kind') in ['deployment']:
+    _k8s_object_expose(name=name + '.expose', yaml=name + '.yaml',
+                       kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
+    _k8s_object_describe(name=name + '.describe', yaml=name + '.yaml',
+                         kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
