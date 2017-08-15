@@ -266,7 +266,7 @@ def _delete_impl(ctx):
 #!/bin/bash -e
 set -o pipefail
 
-kubectl --cluster="{cluster}" delete {kind} "$(kubectl create --dry-run -f "{yaml}" | cut -d'"' -f 2)"
+kubectl --cluster="{cluster}" delete -f "{yaml}"
 EOF""".format(delete_script = ctx.outputs.executable.path,
               cluster = ctx.attr.cluster,
               kind = ctx.attr.kind,
