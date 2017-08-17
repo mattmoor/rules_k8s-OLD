@@ -283,7 +283,9 @@ CONFIGS = [
     # https://kubernetes.io/docs/tasks/configure-pod-container/configmap/
     "configmap",
     # https://kubernetes.io/docs/concepts/configuration/secret/
-    "secret"
+    "secret",
+    # https://kubernetes.io/docs/concepts/api-extension/custom-resources/
+    "customresourcedefinition"
 ]
 
 CONTROLLERS = [
@@ -305,17 +307,13 @@ CONNECTIVITY = [
     "ingress",
 ]
 
-# TODO(mattmoor): How should we handle custom resource definitions?
-
+# We don't use this to validate because it can be dynamic with
+# Custom Resource Definitions.
 KINDS = CONFIGS + CONTROLLERS
 
 _common_attrs = {
     "cluster": attr.string(mandatory = True),
-    "kind": attr.string(
-        mandatory = True,
-        # TODO(mattmoor): Support additional objects
-        values = KINDS,
-    ),
+    "kind": attr.string(mandatory = True),
     "_pusher": attr.label(
         default = Label("//k8s:push_and_resolve.par"),
         cfg = "host",
@@ -448,10 +446,11 @@ def k8s_object(name, **kwargs):
   _k8s_object_replace(name=name + '.replace', resolved=name,
                       kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
 
+  _k8s_object_describe(name=name + '.describe', yaml=name + '.yaml',
+                       kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
+
   # Only expose these bonus actions for certain types.
   # TODO(mattmoor): Consider adding support to autoscale too.
   if kwargs.get('kind') in ['deployment']:
     _k8s_object_expose(name=name + '.expose', yaml=name + '.yaml',
                        kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
-    _k8s_object_describe(name=name + '.describe', yaml=name + '.yaml',
-                         kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
