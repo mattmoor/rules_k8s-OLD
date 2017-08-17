@@ -279,10 +279,35 @@ EOF""".format(delete_script = ctx.outputs.executable.path,
 
   return struct(runfiles = ctx.runfiles(files = ctx.files.yaml))
 
-# TODO(mattmoor): Support additional kinds.
-KINDS = [
-    "deployment",
+CONFIGS = [
+    # https://kubernetes.io/docs/tasks/configure-pod-container/configmap/
+    "configmap",
+    # https://kubernetes.io/docs/concepts/configuration/secret/
+    "secret"
 ]
+
+CONTROLLERS = [
+    # https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
+    "daemonset",
+    # https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+    "deployment",
+    # https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/
+    "job",
+    # https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+    "statefulset",
+]
+
+CONNECTIVITY = [
+    # https://kubernetes.io/docs/concepts/services-networking/service/
+    "endpoint",
+    "service",
+    # https://kubernetes.io/docs/concepts/services-networking/ingress/
+    "ingress",
+]
+
+# TODO(mattmoor): How should we handle custom resource definitions?
+
+KINDS = CONFIGS + CONTROLLERS
 
 _common_attrs = {
     "cluster": attr.string(mandatory = True),
@@ -416,12 +441,15 @@ def k8s_object(name, **kwargs):
   _k8s_object(name=name, **kwargs)
   _k8s_object_create(name=name + '.create', resolved=name,
                      kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
-  _k8s_object_replace(name=name + '.replace', resolved=name,
-                      kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
   _k8s_object_delete(name=name + '.delete', yaml=name + '.yaml',
                      kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
+  # TODO(mattmoor): Limit the usage of this, since it doesn't seem to work
+  # all the time with service.
+  _k8s_object_replace(name=name + '.replace', resolved=name,
+                      kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
 
   # Only expose these bonus actions for certain types.
+  # TODO(mattmoor): Consider adding support to autoscale too.
   if kwargs.get('kind') in ['deployment']:
     _k8s_object_expose(name=name + '.expose', yaml=name + '.yaml',
                        kind=kwargs.get("kind"), cluster=kwargs.get("cluster"))
