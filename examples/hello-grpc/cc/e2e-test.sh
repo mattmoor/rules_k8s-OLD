@@ -33,6 +33,6 @@ check_msg
 for i in $RANDOM $RANDOM $RANDOM; do
   edit "$i"
   update
-  sleep 3
+  sleep 5
   check_msg "$i"
 done
