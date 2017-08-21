@@ -362,7 +362,7 @@ _k8s_object = rule(
 _k8s_object_create = rule(
     attrs = {
         "resolved": attr.label(
-            cfg = "host",
+            cfg = "target",
             executable = True,
             allow_files = True,
         ),
@@ -374,7 +374,7 @@ _k8s_object_create = rule(
 _k8s_object_replace = rule(
     attrs = {
         "resolved": attr.label(
-            cfg = "host",
+            cfg = "target",
             executable = True,
             allow_files = True,
         ),
